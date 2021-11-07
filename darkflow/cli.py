@@ -9,8 +9,10 @@ def cliHandler(args):
 
     # make sure all necessary dirs exist
     def _get_dir(dirs):
+        print('\n\n\n hrererererere : ',dirs)
         for d in dirs:
             this = os.path.abspath(os.path.join(os.path.curdir, d))
+            
             if not os.path.exists(this): os.makedirs(this)
     
     requiredDirectories = [FLAGS.imgdir, FLAGS.binary, FLAGS.backup, os.path.join(FLAGS.imgdir,'out')]
