@@ -42,12 +42,25 @@ def loss(self, net_out):
 		size = m['train_size']
 		self.nu = tf.Variable(tf.ones([train_size, num_classes]))
 
-def make_img(colors,results,depth_colormap):
-    for color,result in zip(colors,results):
-        if result['label']=="person":
-            tl = (result['topleft']['x'],result['topleft']['y'])
-            br = (result['bottomright']['x'],result['bottomright']['y'])
-            label = result['label']
-            depth_colormap = cv2.rectangle(depth_colormap,tl,br,color,7)
-            depth_colormap = cv2.putText(depth_colormap,label,tl,cv2.FONT_HERSHEY_TRIPLEX,1,(0,0,0),2)   
-    return depth_colormap
+def make_img(colors,results,depth_colormap,depth_frame,dis):
+	if dis == 0:
+		for color,result in zip(colors,results):
+			if result['label']=="person":
+				tl = (result['topleft']['x'],result['topleft']['y'])
+				br = (result['bottomright']['x'],result['bottomright']['y'])
+				label = result['label']
+				conf = result['confidence']
+				depth_colormap = cv2.rectangle(depth_colormap,tl,br,color,7)
+				depth_colormap = cv2.putText(depth_colormap,label+' '+str(round(conf*100,3))+'%',tl,cv2.FONT_HERSHEY_TRIPLEX,1,(0,0,0),2)
+	else:
+		for color,result in zip(colors,results):
+			if result['label']=="person":
+				tl = (result['topleft']['x'],result['topleft']['y'])
+				br = (result['bottomright']['x'],result['bottomright']['y'])
+				mid = ((result['topleft']['x']+result['bottomright']['x'])/2 , (result['topleft']['y'] + result['bottomright']['y'])/2)
+				
+				ob_di = depth_frame[int(mid[1]),int(mid[0])]
+				label = result['label']
+				depth_colormap = cv2.rectangle(depth_colormap,tl,br,color,7)
+				depth_colormap = cv2.putText(depth_colormap,label+'  '+str((ob_di+4000)/10000)+'m',tl,cv2.FONT_HERSHEY_TRIPLEX,1,(0,0,0),2)
+	return depth_colormap

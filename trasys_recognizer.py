@@ -25,8 +25,9 @@ sys.setrecursionlimit(5000)
 global tfnet
 global color
 
-colors = [tuple(255*np.random.rand(3)) for i in range(5)]
-
+colors = [tuple(255*np.random.rand(3)) for i in range(100)]
+global mode
+mode = 0
 global save_path
 global fps_frame
 global rec
@@ -47,7 +48,7 @@ class Thread(QThread):
         config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30) # 설정변경
         config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30) #설정변경
         pipeline.start(config)
-        
+        global mode
         global rec
         global fps_frame
         global per_li
@@ -65,11 +66,31 @@ class Thread(QThread):
                 color_image = np.asanyarray(color_frame.get_data())
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                 
-                if rec == 1:
-                    results = pred(net,color_image)
-                    depth_colormap = pipline_v1.make_img(colors,results,depth_colormap)
-                
-                cap = depth_colormap
+                if mode == 0:
+                    input_rec_image = color_image
+                elif mode == 1:
+                    if rec == 0:
+                        input_rec_image = depth_colormap
+                    elif rec == 1:
+                        results = pred(net,color_image)
+                        input_rec_image = pipline_v1.make_img(colors,results,depth_colormap,depth_image,0)
+                elif mode == 2:
+                    if rec == 0:
+                        input_rec_image = np.hstack((color_image,depth_colormap))
+                    elif rec == 1:
+                        results = pred(net,color_image)
+                        output_dep = pipline_v1.make_img(colors,results,depth_colormap,depth_image,0)
+                        input_rec_image = np.hstack((color_image,output_dep))
+                elif mode == 3:
+                    if rec == 0:
+                        input_rec_image = np.hstack((color_image,depth_colormap))
+                    elif rec == 1:
+                        results = pred(net,color_image)
+                        output_dep = pipline_v1.make_img(colors,results,depth_colormap,depth_image,1)
+                        input_rec_image = np.hstack((color_image,output_dep))
+
+                    
+                cap = input_rec_image
                 rgbImage = cv2.cvtColor(cap, cv2.COLOR_BGR2RGB) 
                 h, w, ch = rgbImage.shape 
                 bytesPerLine = ch * w 
@@ -94,7 +115,7 @@ class MyApp(pre_ui.Ui_Dialog,QDialog):
     @pyqtSlot(QImage)
     def setImage(self, image):
         self.label.setPixmap(QPixmap.fromImage(image))
-        #self.label.setScaledContents( True )
+        self.label.setScaledContents( True )
  
     
     def initUI(self):
@@ -107,12 +128,31 @@ class MyApp(pre_ui.Ui_Dialog,QDialog):
         self.start.clicked.connect(self.start_record)
         self.start.setToolTip('검지를 시작 합니다.')
 
-        
+        self.cctv.clicked.connect(self.change_cctv)
+        self.lidar.clicked.connect(self.change_lidar)
+        self.dual.clicked.connect(self.change_dual)
+        self.distance.clicked.connect(self.change_distance)
 
         self.setWindowTitle('TRASYS Recognizer')
         self.move(300, 300)
-        self.resize(700,680)
+        self.resize(1100,750)
         self.show()
+
+    def change_dual(self):
+        global mode
+        mode = 2
+
+    def change_cctv(self):
+        global mode
+        mode = 0
+
+    def change_lidar(self):
+        global mode
+        mode = 1
+    
+    def change_distance(self):
+        global mode
+        mode = 3
 
 
     def start_record(self):
